@@ -1,2 +1,2 @@
 # PECI
-## Data centric machile learning ops for autonomous driving
+## Data centric machine learning ops for autonomous driving
