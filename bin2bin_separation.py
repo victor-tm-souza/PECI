@@ -1,3 +1,4 @@
+from cmath import isnan
 from pathlib import Path
 from typing import List
 import numpy as np
@@ -108,9 +109,14 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                 y.append(t[1])
                 z.append(t[2])
 
-            mean_x = np.mean(x)
-            mean_y = np.mean(y)
-            min_z = np.min(z)
+            mean_x = np.nanmean(x)
+            mean_y = np.nanmean(y)
+            min_z = min(z)
+            
+            '''if (key_val == 204546):
+                print(type(min_z))
+                print(entity_pc_pos_z)
+            '''
             
             indexes = len(dictio[key_val])
             i = 0
@@ -126,11 +132,16 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                     del dictio[key_val][i]
                     indexes -= 1
                 else:
-                    #tuple_to_list[1] -= mean_y
+                    tuple_to_list[1] -= mean_y
+                    tuple_to_list[2] -= np.float32(entity_pc_pos_z)
                     #tuple_to_list[2] -= min_z
+                    '''
+                    if (key_val == 204546):
+                        print(type(tuple_to_list[2]))
+                    '''
                     dictio[key_val][i] = tuple(tuple_to_list)
                     i+=1
-
+                    
             #if (key_val == 3074):
             #    print(len(dictio[key_val]))
             sec_output_file = output_file + "cars\\" + name + "_" + str(int (key_val))
