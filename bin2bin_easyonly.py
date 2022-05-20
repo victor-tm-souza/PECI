@@ -11,7 +11,7 @@ def main():
 
 
 
-    for filesonpath in glob.glob("D:\\presil-export\\object\\velodyne\\*.bin"):
+    for filesonpath in glob.glob("C:\\PreSIL\\datasets\\object-63\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("D:\\presil-export\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("E:\\testar\\*.bin"):
         values = []
@@ -20,7 +20,7 @@ def main():
         file_split=file_name.split(".")
         print("Split: ", file_split[0])
         #output_path = "C:\\Users\\Leandro\\Desktop\\Presil\\PreSIL_Output\\bintoply\\" + file_split[0] + ".ply"
-        output_path = "D:\\presil-export\\pointcloud-treatment\\bin-results\\"
+        output_path = "C:\\PreSIL\\datasets\\worked\\"
         #print("\nOutput path: ", output_path)
         print("\n\n\n")
         loadKittiVelodyneFile(filesonpath,file_split[0],output_path)
@@ -41,7 +41,7 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
 
     points = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
 
-    label_name = "D:\\presil-export\\object\\label_aug_2\\"  + str(name) + ".txt"
+    label_name = "C:\\PreSIL\\datasets\\object-63\\label_aug_2\\"  + str(name) + ".txt"
     label_file = open(label_name, 'r')
     lines = label_file.readlines() 
     lines_atribute_list = []  
@@ -100,7 +100,8 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                         if det[15]==k:
                             point_tuple_list.extend(dictio[det[15]])
 
-    saveBinFile(file_path, point_tuple_list)
+    output_file = output_file + name
+    saveBinFile(output_file, point_tuple_list)
 
 def saveBinFile(filepath, tuple_list):
     filepath = filepath + ".bin"
