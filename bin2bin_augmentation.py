@@ -11,7 +11,7 @@ import glob
 def main():
 
     cars = glob.glob("D:\\presil-export\\pointcloud-treatment\\bin-results\\cars\\*.bin")
-    num_cars = len(cars)
+    num_car_files = len(cars)
     for filesonpath in glob.glob("D:\\presil-export\\pointcloud-treatment\\bin-results\\scenarios\\*.bin"):
         file_name = os.path.basename(filesonpath)
         print("\nFile: ",filesonpath)
@@ -20,13 +20,13 @@ def main():
         output_path = "D:\\presil-export\\pointcloud-treatment\\bin-results\\augmented\\"
         print("\n\n\n")
 
-        loadKittiVelodyneFile(filesonpath,file_split[0],cars,output_path)
+        loadKittiVelodyneFile(filesonpath,file_split[0],cars, num_car_files, output_path)
 
     print("Done\n")
 
 
 
-def loadKittiVelodyneFile(file_path, name, cars, output_file, include_luminance=True):
+def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, include_luminance=True):
     '''
     Loads a kitti velodyne file (ex: 000000.bin) into a list of tuples, where each tuple has (x, y, z) or (x, y, z, l)
     Right now it discards the 4th vaule of each point, i.e. the luminance
@@ -50,26 +50,68 @@ def loadKittiVelodyneFile(file_path, name, cars, output_file, include_luminance=
         for i in range(len(points_scenario)):
             point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2],))
 
-    num_car_files = len(cars)
     num_cars = randint(1, 10)
     for i in range(num_cars):
+        print("\n")
         car_pc = randint(0, num_car_files-1)
         car_file = cars[car_pc]
+        car_file_name = os.path.basename(car_file)
+        car_scene = car_file_name.split("_")[0]
+        car_id = (car_file_name.split("_")[1]).split(".")[0]
         points_cars = np.fromfile(car_file, dtype=np.float32).reshape(-1, 4)
+
+        label_name = "D:\\presil-export\\object\\label_aug_2\\"  + car_scene + ".txt"
+        label_file = open(label_name, 'r')
+        lines = label_file.readlines() 
+    
+        for line in lines:
+            atribute_list = line.split(" ")
+            
+
+            if (str(atribute_list[15]) == car_id):
+                entity_width = float(atribute_list[9])
+                entity_height = float(atribute_list[8])
+                entity_length = float(atribute_list[10])
+
+                entity_vel_pos_x = float(atribute_list[11])
+                entity_vel_pos_y = float(atribute_list[12])
+                entity_vel_pos_z = float(atribute_list[13])
+
+                entity_pc_pos_x = entity_vel_pos_z
+                entity_pc_pos_y = -entity_vel_pos_x
+                entity_pc_pos_z = -entity_vel_pos_y
+
+                break
+            
+
+        
 
         if include_luminance:
             points_cars = points_cars[:, :4]  # exclude luminance
 
-            for i in range(len(points_cars)):
-                point_tuple_list.append((points_cars[i][0], points_cars[i][1], points_cars[i][2], points_cars[i][3]))
+            for i in range(len(point_tuple_list)):
+                if((point_tuple_list[i][0] > entity_pc_pos_x - 1) and (point_tuple_list[i][0] < entity_pc_pos_x + 1) and (point_tuple_list[i][1] > entity_pc_pos_y - 1) and (point_tuple_list[i][1] < entity_pc_pos_y + 1)):
+                    print("scenario point: (", point_tuple_list[i][0], ", ", point_tuple_list[i][1], ", ", point_tuple_list[i][2], ")")
+                    print("car center: (", entity_pc_pos_x, ", ", entity_pc_pos_y, ", ", entity_pc_pos_z, ")")
+                    
+                    subtraction = (entity_pc_pos_z - point_tuple_list[i][2])
+                    print("subtraction: ", subtraction)
+                    print("\n")
+                    for i in range(len(points_cars)):
+                        #if(name == "000022_empty"):
+                        #    print(points_cars[i][2], " vs ", np.float32(points_cars[i][2]-subtraction))
+                        point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2]-subtraction), points_cars[i][3]))
+                    break
+
+                
         else:
             points_cars = points_cars[:, :3]  # exclude luminance
 
             for i in range(len(points_cars)):
-                point_tuple_list.append((points_cars[i][0], points_cars[i][1], points_cars[i][2],))
+                point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2] - (entity_pc_pos_z - point_tuple_list[i][2])),))
 
     
-    output_file = output_file + name
+    output_file = output_file + name.split("_")[0]
     saveBinFile(output_file, point_tuple_list)
 
 

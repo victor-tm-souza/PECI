@@ -60,6 +60,18 @@ def main():
         values=loadKittiVelodyneFile(filesonpath4)
         savePlyFile(output_path,values)
 
+    for filesonpath4 in glob.glob("D:\\presil-export\\pointcloud-treatment\\bin-results\\easy\\*.bin"):
+        values = []
+        file_name = os.path.basename(filesonpath4)
+        print("\nFile: ",filesonpath4)
+        file_split=file_name.split(".")
+        print("Split: ", file_split[0])
+        output_path = "D:\\presil-export\\pointcloud-treatment\\ply-results\\easy\\" + file_split[0] + ".ply"
+        print("\nOutput path: ", output_path)
+        print("\n\n\n")
+        values=loadKittiVelodyneFile(filesonpath4)
+        savePlyFile(output_path,values)
+
     print("Done\n")
 
 

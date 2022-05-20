@@ -9,8 +9,6 @@ import glob
 
 def main():
 
-
-
     for filesonpath in glob.glob("D:\\presil-export\\object\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("D:\\presil-export\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("E:\\testar\\*.bin"):
@@ -19,7 +17,6 @@ def main():
         print("\nFile: ",filesonpath)
         file_split=file_name.split(".")
         print("Split: ", file_split[0])
-        #output_path = "C:\\Users\\Leandro\\Desktop\\Presil\\PreSIL_Output\\bintoply\\" + file_split[0] + ".ply"
         output_path = "D:\\presil-export\\pointcloud-treatment\\bin-results\\"
         #print("\nOutput path: ", output_path)
         print("\n\n\n")
@@ -132,8 +129,8 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                     del dictio[key_val][i]
                     indexes -= 1
                 else:
-                    tuple_to_list[1] -= mean_y
-                    tuple_to_list[2] -= np.float32(entity_pc_pos_z)
+                    #tuple_to_list[1] -= mean_y
+                    #tuple_to_list[2] -= np.float32(entity_pc_pos_z)
                     #tuple_to_list[2] -= min_z
                     '''
                     if (key_val == 204546):
@@ -157,25 +154,6 @@ def saveBinFile(filepath, tuple_list):
     newFile = open(filepath,"wb")
     newFile.write(newFileByteArray)
 
-def augmentationAttempt(file_path, scen_tuple_list, include_luminance=True):
-    points = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
-
-
-    if include_luminance:
-        points = points[:, :4]  # exclude luminance
-
-        for i in range(len(points)):
-            if(points[i][3] == 91394):
-                scen_tuple_list.append((points[i][0], points[i][1]+10, points[i][2]-1, points[i][3]))
-    else:
-        points = points[:, :3]  # exclude luminance
-
-        for i in range(len(points)):
-            scen_tuple_list.append((points[i][0], points[i][1], points[i][2],))
-
-    scen_tuple_list.append(scen_tuple_list)
-
-    return scen_tuple_list
 
 def savePlyFile(filepath, tuple_list, attributes=None, color_for_every_point=(0, 0, 0)):
     '''
