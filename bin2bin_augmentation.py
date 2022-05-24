@@ -52,7 +52,6 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
 
     num_cars = randint(1, 10)
     for i in range(num_cars):
-        print("\n")
         car_pc = randint(0, num_car_files-1)
         car_file = cars[car_pc]
         car_file_name = os.path.basename(car_file)
@@ -88,27 +87,25 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
 
         if include_luminance:
             points_cars = points_cars[:, :4]  # exclude luminance
+            close_points = []
+
 
             for i in range(len(point_tuple_list)):
-                if((point_tuple_list[i][0] > entity_pc_pos_x - 1) and (point_tuple_list[i][0] < entity_pc_pos_x + 1) and (point_tuple_list[i][1] > entity_pc_pos_y - 1) and (point_tuple_list[i][1] < entity_pc_pos_y + 1)):
-                    print("scenario point: (", point_tuple_list[i][0], ", ", point_tuple_list[i][1], ", ", point_tuple_list[i][2], ")")
-                    print("car center: (", entity_pc_pos_x, ", ", entity_pc_pos_y, ", ", entity_pc_pos_z, ")")
-                    
-                    subtraction = (entity_pc_pos_z - point_tuple_list[i][2])
-                    print("subtraction: ", subtraction)
-                    print("\n")
-                    for i in range(len(points_cars)):
-                        #if(name == "000022_empty"):
-                        #    print(points_cars[i][2], " vs ", np.float32(points_cars[i][2]-subtraction))
-                        point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2]-subtraction), points_cars[i][3]))
-                    break
+                if((point_tuple_list[i][0] > entity_pc_pos_x - 1.8) and (point_tuple_list[i][0] < entity_pc_pos_x + 1.8) and (point_tuple_list[i][1] > entity_pc_pos_y - 1.8) and (point_tuple_list[i][1] < entity_pc_pos_y + 1.8)):
+                    close_points.append(point_tuple_list[i])
+            
+            if(close_points!= []):
+                lower_z = min(close_points)[2]
+                subtraction = (entity_pc_pos_z - lower_z)        
+                for i in range(len(points_cars)):
+                    point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2]-subtraction), points_cars[i][3]))
 
                 
         else:
             points_cars = points_cars[:, :3]  # exclude luminance
 
             for i in range(len(points_cars)):
-                point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2] - (entity_pc_pos_z - point_tuple_list[i][2])),))
+                point_tuple_list.append((points_cars[i][0], points_cars[i][1], points_cars[i][2],))
 
     
     output_file = output_file + name.split("_")[0]
