@@ -9,7 +9,7 @@ import glob
 
 def main():
 
-    for filesonpath in glob.glob("D:\\presil-export\\object\\velodyne\\*.bin"):
+    for filesonpath in glob.glob("/media/peciml/My Passport/PECI/Validation Dataset/dataset_3500/velodyne_full/*.bin"):
     #for filesonpath in glob.glob("D:\\presil-export\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("E:\\testar\\*.bin"):
         values = []
@@ -17,7 +17,7 @@ def main():
         print("\nFile: ",filesonpath)
         file_split=file_name.split(".")
         print("Split: ", file_split[0])
-        output_path = "D:\\presil-export\\pointcloud-treatment\\bin-results\\"
+        output_path = "/media/peciml/My Passport/PECI/Validation Dataset/separated/"
         #print("\nOutput path: ", output_path)
         print("\n\n\n")
         loadKittiVelodyneFile(filesonpath,file_split[0],output_path)
@@ -38,7 +38,7 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
 
     points = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
 
-    label_name = "D:\\presil-export\\object\\label_aug_2\\"  + str(name) + ".txt"
+    label_name = "/media/peciml/My Passport/PECI/Validation Dataset/dataset_3500/label_aug_2_full/"  + str(name) + ".txt"
     label_file = open(label_name, 'r')
     lines = label_file.readlines() 
     lines_atribute_list = []  
@@ -72,7 +72,7 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
             point_tuple_list.append((points[i][0], points[i][1], points[i][2],))
 
     if(len(dictio.keys()) == 0):
-        first_output_file = output_file + "scenarios\\" + name + "_empty"
+        first_output_file = output_file + "scenarios/" + name + "_empty"
         print("\nOutput path: ", first_output_file)
         print("\n")
         saveBinFile(first_output_file, point_tuple_list)
@@ -80,6 +80,7 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
         for key_val in dictio.keys():
             entity_atr = []
             for line in lines_atribute_list:
+                print(str(line[15]), " == ", str(int(key_val)))
                 if (str(line[15]) == str(int(key_val))):
                     entity_atr = line
                     break
@@ -141,7 +142,7 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                     
             #if (key_val == 3074):
             #    print(len(dictio[key_val]))
-            sec_output_file = output_file + "cars\\" + name + "_" + str(int (key_val))
+            sec_output_file = output_file + "cars/" + name + "_" + str(int (key_val))
             print("\nOutput path: ", sec_output_file)
             print("\n")
             saveBinFile(sec_output_file, dictio[key_val])
