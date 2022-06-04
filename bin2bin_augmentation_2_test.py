@@ -132,11 +132,9 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
         os.remove(label_2_new)
 
 def verifyplan(vetor2pontos,entity_pc_pos_x, entity_pc_pos_y, entity_pc_pos_z):
-    value = (vetor2pontos[0]*entity_pc_pos_x) + (vetor2pontos[1]*entity_pc_pos_y) + (vetor2pontos[2]*entity_pc_pos_z)
-    if (value==0):
-        return True
-    else:
-        return False 
+    valuexy = (vetor2pontos[0]*entity_pc_pos_x) + (vetor2pontos[1]*entity_pc_pos_y)
+    valuez= (-valuexy/entity_pc_pos_z)
+    return valuez 
 
 def saveBinFile(filepath, tuple_list):
     filepath = filepath + ".bin"
