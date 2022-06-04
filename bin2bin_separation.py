@@ -1,4 +1,5 @@
 from cmath import isnan
+from operator import truediv
 from pathlib import Path
 from typing import List
 import numpy as np
@@ -6,10 +7,11 @@ import os.path
 import math
 import os
 import glob
+import shutil
 
 def main():
 
-    for filesonpath in glob.glob("/media/peciml/My Passport/PECI/Validation Dataset/dataset_3500/velodyne_full/*.bin"):
+    for filesonpath in glob.glob("/media/peciml/My Passport/PECI/training_set/dataset_3500/velodyne_full/*.bin"):
     #for filesonpath in glob.glob("D:\\presil-export\\velodyne\\*.bin"):
     #for filesonpath in glob.glob("E:\\testar\\*.bin"):
         values = []
@@ -17,7 +19,7 @@ def main():
         print("\nFile: ",filesonpath)
         file_split=file_name.split(".")
         print("Split: ", file_split[0])
-        output_path = "/media/peciml/My Passport/PECI/Validation Dataset/separated/"
+        output_path = "/media/peciml/My Passport/PECI/separated_training_set/"
         #print("\nOutput path: ", output_path)
         print("\n\n\n")
         loadKittiVelodyneFile(filesonpath,file_split[0],output_path)
@@ -38,114 +40,126 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
 
     points = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
 
-    label_name = "/media/peciml/My Passport/PECI/Validation Dataset/dataset_3500/label_aug_2_full/"  + str(name) + ".txt"
+    label_name = "/media/peciml/My Passport/PECI/training_set/dataset_3500/label_aug_2_full/"  + str(name) + ".txt"
     label_file = open(label_name, 'r')
-    lines = label_file.readlines() 
+    lines = label_file.readlines()
+
+    label_2_name = "/media/peciml/My Passport/PECI/training_set/dataset_3500/label_2_full/"  + str(name) + ".txt"
+    label_2_file = open(label_2_name, 'r')
+    lines_2 = label_2_file.readlines()
+
     lines_atribute_list = []  
+    lines_2_atribute_list = [] 
     
     for line in lines:
         atribute_list = line.split(" ")
         lines_atribute_list.append(atribute_list)
     
+    for line_2 in lines_2:
+        atribute_list = line_2.split(" ")
+        lines_2_atribute_list.append(atribute_list)
+
     dictio = {}
     point_tuple_list = []
 
 
-    if include_luminance:
-        points = points[:, :4]  # exclude luminance
+    empty_frame = True
 
-        for i in range(len(points)):
-            id = points[i][3]
+    for line_2 in lines_2_atribute_list:
+        if(line_2[0] == "Car" or line_2[0] == "Truck" or line_2[0] == "Van" or line_2[0] == "Trailer" or line_2[0] == "Misc"):
+            empty_frame = False
+            break
 
-            if(id > 0 and id != 2818 and id != 4610):
-                if id in dictio:
-                    dictio[id].append((points[i][0], points[i][1], points[i][2], points[i][3]))
-                else:
-                    dictio[id] = [(points[i][0], points[i][1], points[i][2], points[i][3])]
-    
-            elif(id == 0):
-                point_tuple_list.append((points[i][0], points[i][1], points[i][2], points[i][3]))
-    else:
-        points = points[:, :3]  # exclude luminance
-
-        for i in range(len(points)):
-            point_tuple_list.append((points[i][0], points[i][1], points[i][2],))
-
-    if(len(dictio.keys()) == 0):
-        first_output_file = output_file + "scenarios/" + name + "_empty"
+    if(empty_frame):
+        first_output_file = output_file + "scenarios/" + name + "_empty.bin"
         print("\nOutput path: ", first_output_file)
         print("\n")
-        saveBinFile(first_output_file, point_tuple_list)
+        shutil.copyfile(file_path, first_output_file)
+        
     else:
+        if include_luminance:
+            points = points[:, :4]  # exclude luminance
+
+            for i in range(len(points)):
+                id = points[i][3]
+
+                if(id > 0):
+                    if id in dictio:
+                        dictio[id].append((points[i][0], points[i][1], points[i][2], points[i][3]))
+                    else:
+                        dictio[id] = [(points[i][0], points[i][1], points[i][2], points[i][3])]
+        
         for key_val in dictio.keys():
             entity_atr = []
             for line in lines_atribute_list:
-                print(str(line[15]), " == ", str(int(key_val)))
-                if (str(line[15]) == str(int(key_val))):
+                if ((str(line[15]) == str(int(key_val))) and (line[0] == "Car" or line[0] == "Truck" or line[0] == "Van" or line[0] == "Trailer")):
                     entity_atr = line
-                    break
-            
-            entity_width = float(entity_atr[9])
-            entity_height = float(entity_atr[8])
-            entity_length = float(entity_atr[10])
 
-            entity_vel_pos_x = float(entity_atr[11])
-            entity_vel_pos_y = float(entity_atr[12])
-            entity_vel_pos_z = float(entity_atr[13])
+                    entity_width = float(entity_atr[9])
+                    entity_height = float(entity_atr[8])
+                    entity_length = float(entity_atr[10])
 
-            entity_pc_pos_x = entity_vel_pos_z
-            entity_pc_pos_y = -entity_vel_pos_x
-            entity_pc_pos_z = -entity_vel_pos_y
+                    entity_vel_pos_x = float(entity_atr[11])
+                    entity_vel_pos_y = float(entity_atr[12])
+                    entity_vel_pos_z = float(entity_atr[13])
 
-            r = np.sqrt(((entity_length/2)**2) + ((entity_width/2)**2))
+                    entity_pc_pos_x = entity_vel_pos_z
+                    entity_pc_pos_y = -entity_vel_pos_x
+                    entity_pc_pos_z = -entity_vel_pos_y
 
-            x=[]
-            y=[]
-            z=[]
-            for t in dictio[key_val]:
-                x.append(t[0])
-                y.append(t[1])
-                z.append(t[2])
+                    r = np.sqrt(((entity_length/2)**2) + ((entity_width/2)**2))
 
-            mean_x = np.nanmean(x)
-            mean_y = np.nanmean(y)
-            min_z = min(z)
-            
-            '''if (key_val == 204546):
-                print(type(min_z))
-                print(entity_pc_pos_z)
-            '''
-            
-            indexes = len(dictio[key_val])
-            i = 0
+                    x=[]
+                    y=[]
+                    z=[]
+                    for t in dictio[key_val]:
+                        x.append(t[0])
+                        y.append(t[1])
+                        z.append(t[2])
 
-            while i < indexes:
-                #tuple_to_list[0] -= mean_x
-                tuple_to_list = list(dictio[key_val][i])
-            
-                #circle equation: (x - a)² + (y - b)² = r²
-                circle_value = (-tuple_to_list[1] - (-entity_pc_pos_y))**2 + (tuple_to_list[0] - entity_pc_pos_x)**2 - r**2
-                #margin of error will be 0.5 for ramps
-                if (circle_value > 0 or tuple_to_list[2] < (entity_pc_pos_z - 0.5) or tuple_to_list[2] > (entity_pc_pos_z + entity_height + 0.5)):
-                    del dictio[key_val][i]
-                    indexes -= 1
-                else:
-                    #tuple_to_list[1] -= mean_y
-                    #tuple_to_list[2] -= np.float32(entity_pc_pos_z)
-                    #tuple_to_list[2] -= min_z
-                    '''
-                    if (key_val == 204546):
-                        print(type(tuple_to_list[2]))
-                    '''
-                    dictio[key_val][i] = tuple(tuple_to_list)
-                    i+=1
+                    mean_x = np.nanmean(x)
+                    mean_y = np.nanmean(y)
+                    min_z = min(z)
                     
-            #if (key_val == 3074):
-            #    print(len(dictio[key_val]))
-            sec_output_file = output_file + "cars/" + name + "_" + str(int (key_val))
-            print("\nOutput path: ", sec_output_file)
-            print("\n")
-            saveBinFile(sec_output_file, dictio[key_val])
+                    '''if (key_val == 204546):
+                        print(type(min_z))
+                        print(entity_pc_pos_z)
+                    '''
+                    
+                    indexes = len(dictio[key_val])
+                    i = 0
+
+                    while i < indexes:
+                        #tuple_to_list[0] -= mean_x
+                        tuple_to_list = list(dictio[key_val][i])
+                    
+                        #circle equation: (x - a)² + (y - b)² = r²
+                        circle_value = (-tuple_to_list[1] - (-entity_pc_pos_y))**2 + (tuple_to_list[0] - entity_pc_pos_x)**2 - r**2
+                        #margin of error will be 0.5 for ramps
+                        if (circle_value > 0 or tuple_to_list[2] < (entity_pc_pos_z - 0.5) or tuple_to_list[2] > (entity_pc_pos_z + entity_height + 0.5)):
+                            del dictio[key_val][i]
+                            indexes -= 1
+                        else:
+                            #tuple_to_list[1] -= mean_y
+                            #tuple_to_list[2] -= np.float32(entity_pc_pos_z)
+                            #tuple_to_list[2] -= min_z
+                            '''
+                            if (key_val == 204546):
+                                print(type(tuple_to_list[2]))
+                            '''
+                            dictio[key_val][i] = tuple(tuple_to_list)
+                            i+=1
+                            
+                    #if (key_val == 3074):
+                    #    print(len(dictio[key_val]))
+                    sec_output_file = output_file + "cars/" + name + "_" + str(int (key_val))
+                    print("\nOutput path: ", sec_output_file)
+                    print("\n")
+                    saveBinFile(sec_output_file, dictio[key_val])
+
+                    break
+                
+            
 
 
 def saveBinFile(filepath, tuple_list):

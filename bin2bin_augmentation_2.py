@@ -48,10 +48,16 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
     point_tuple_list = []
 
 
-    points_scenario = points_scenario[:, :4]  # exclude luminance
+    if include_luminance:
+        points_scenario = points_scenario[:, :4]  # exclude luminance
 
-    for i in range(len(points_scenario)):
-        point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2], np.float32(0)))
+        for i in range(len(points_scenario)):
+            point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2], np.float32(0)))
+    else:
+        points_scenario = points_scenario[:, :3]  # exclude luminance
+
+        for i in range(len(points_scenario)):
+            point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2],))
 
 
     label_2_old = "/media/peciml/My Passport/PECI/training_set/dataset_3500/label_2_full/"  + name.split("_")[0]  + ".txt"
