@@ -71,9 +71,6 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
     label_2_new = "/media/peciml/My Passport/PECI/cropped_training_set/label_2/"  + "{number:06}".format(number=n_cnt) + ".txt"
     shutil.copyfile(label_2_old,label_2_new)
 
-    with open(label_2_new, "r") as f_2:
-        lines_2 = f_2.readlines()
-
     with open(label_name) as f:
         content = f.readlines()
         empty = True
@@ -92,17 +89,25 @@ def loadKittiVelodyneFile(file_path, name, output_file, include_luminance=True):
                 det[15]=float(det[15])
                 height=math.fabs(det[7]-det[5])
 
-                if (det[1] >=0 and det[1] <= 0.15 and det[2] ==0.0 and height >=40):
-                    #print ("easy")
-                    for k in dictio.keys():
-                        if det[15]==k:
+                
+                #print ("easy")
+                for k in dictio.keys():
+                    if det[15]==k:
+                        if (det[1] >=0 and det[1] <= 0.15 and det[2] ==0.0 and height >=40):
                             empty = False
                             point_tuple_list.extend(dictio[det[15]])
-                else:
-                    with open(label_2_new, "w") as f_2:
-                        for line_2 in lines_2:
-                            if line_2 != (det[0] + " " + str(det[1]) + " " + str(det[2]) + " " + det[3] + " " + det[4] + " " + str(det[5]) + " " + det[6] + " " + str(det[7]) + " " + det[8] + " " + det[9] + " " + det[10] + " " + det[11] + " " + det[12] + " " + det[13] + " " + det[14] + "\n"):
-                                f_2.write(line_2)
+                            break
+                        else:
+                            with open(label_2_new, "r") as f_2:
+                                lines_2 = f_2.readlines()
+                            f_2 = open(label_2_new, "w")
+                            for line_2 in lines_2:
+                                line_at = line_2.split(" ")
+                                if line_at[11] != det[11] or line_at[12] != line_at[12] or line_at[13] != det[13]:
+                                    f_2.write(line_2)         
+                                else:
+                                    print("deleted: " + line_at[0] + ", " + line_at[1] + ", " + line_at[2] + ", " + line_at[3] + ", " + line_at[4])        
+                            f_2.close()           
 
 
     if(not empty):

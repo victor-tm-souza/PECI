@@ -9,6 +9,7 @@ import os
 import glob
 import shutil
 
+# change n_cnt to 0
 n_cnt = 0
 
 def main():
@@ -25,7 +26,7 @@ def main():
         print("\nFile: ",filesonpath)
         file_split=file_name.split(".")
         print("Split: ", file_split[0])
-        output_path = "/media/peciml/My Passport/PECI/augmented_set/velodyne/" + "{number:06}".format(number=n_cnt)
+        output_path = "/media/peciml/My Passport/PECI/augmented_set_v2/velodyne/" + "{number:06}".format(number=n_cnt)
         print("Data number: ", "{number:06}".format(number=n_cnt))
         print("\n\n\n")
 
@@ -48,25 +49,23 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
     point_tuple_list = []
 
 
-    if include_luminance:
-        points_scenario = points_scenario[:, :4]  # exclude luminance
+    points_scenario = points_scenario[:, :4]  # exclude luminance
 
-        for i in range(len(points_scenario)):
-            point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2], np.float32(0)))
-    else:
-        points_scenario = points_scenario[:, :3]  # exclude luminance
-
-        for i in range(len(points_scenario)):
-            point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2],))
+    for i in range(len(points_scenario)):
+        point_tuple_list.append((points_scenario[i][0], points_scenario[i][1], points_scenario[i][2], np.float32(0)))
 
 
     label_2_old = "/media/peciml/My Passport/PECI/training_set/dataset_3500/label_2_full/"  + name.split("_")[0]  + ".txt"
-    label_2_new = "/media/peciml/My Passport/PECI/augmented_set/label_2/"  + "{number:06}".format(number=n_cnt) + ".txt"
+    label_2_new = "/media/peciml/My Passport/PECI/augmented_set_v2/label_2/"  + "{number:06}".format(number=n_cnt) + ".txt"
     shutil.copyfile(label_2_old,label_2_new)
+
+    already_inserted_cars =[] 
 
     with open(label_2_new, "a+") as label_2_file:
         num_cars = randint(15, 23)
-        for i in range(num_cars):
+        i=0
+        tries = 0
+        while i < num_cars:
             car_pc = randint(0, num_car_files-1)
             car_file = cars[car_pc]
             car_file_name = os.path.basename(car_file)
@@ -82,10 +81,6 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
                 
 
                 if (str(atribute_list[15]) == car_id):
-                    #entity_width = float(atribute_list[9])
-                    #entity_height = float(atribute_list[8])
-                    #entity_length = float(atribute_list[10])
-
                     entity_vel_pos_x = float(atribute_list[11])
                     entity_vel_pos_y = float(atribute_list[12])
                     entity_vel_pos_z = float(atribute_list[13])
@@ -94,33 +89,56 @@ def loadKittiVelodyneFile(file_path, name, cars, num_car_files, output_file, inc
                     entity_pc_pos_y = -entity_vel_pos_x
                     entity_pc_pos_z = -entity_vel_pos_y
                 
-                    if include_luminance:
-                        points_cars = points_cars[:, :4]  # exclude luminance
-                        close_points = []
+                    points_cars = points_cars[:, :4]  # exclude luminance
+                    close_points = []
 
+                    fail = False
 
-                        for i in range(len(point_tuple_list)):
-                            if((point_tuple_list[i][0] > entity_pc_pos_x - 1.8) and (point_tuple_list[i][0] < entity_pc_pos_x + 1.8) and (point_tuple_list[i][1] > entity_pc_pos_y - 1.8) and (point_tuple_list[i][1] < entity_pc_pos_y + 1.8)):
-                                close_points.append(point_tuple_list[i])
-                        
-                        if(close_points!= []):
+                    for j in range(len(point_tuple_list)):
+                        if((point_tuple_list[j][0] > entity_pc_pos_x - 1.8) and (point_tuple_list[j][0] < entity_pc_pos_x + 1.8) and (point_tuple_list[j][1] > entity_pc_pos_y - 1.8) and (point_tuple_list[j][1] < entity_pc_pos_y + 1.8)):
+                            close_points.append(point_tuple_list[j])
+                    
+                    if(close_points!= []):
+                        entity_width = float(atribute_list[9])
+                        #entity_height = float(atribute_list[8])
+                        entity_length = float(atribute_list[10])
+                        r_main = np.sqrt(((entity_length/2)**2) + ((entity_width/2)**2))
+                        for inserted_car in already_inserted_cars:
+                            this_vel_pos_x = float(inserted_car[11])
+                            this_vel_pos_z = float(inserted_car[13])
+
+                            this_pc_pos_x = this_vel_pos_z
+                            this_pc_pos_y = -this_vel_pos_x
+
+                            inserted_car_width = float(inserted_car[9])
+                            inserted_car_length = float(inserted_car[10]) 
+                            r_this = np.sqrt(((inserted_car_length/2)**2) + ((inserted_car_width/2)**2))
+                            center_distance = np.sqrt((entity_pc_pos_x - this_pc_pos_x)**2 + (entity_pc_pos_y - this_pc_pos_y)**2)
+
+                            if(center_distance<(r_main + r_this)):
+                                fail = True
+                                break
+
+                        if(not fail):      
                             lower_z = min(close_points)[2]
                             subtraction = (entity_pc_pos_z - lower_z)        
-                            for i in range(len(points_cars)):
-                                point_tuple_list.append((points_cars[i][0], points_cars[i][1], np.float32(points_cars[i][2]-subtraction), np.float32(0)))
+                            for k in range(len(points_cars)):
+                                point_tuple_list.append((points_cars[k][0], points_cars[k][1], np.float32(points_cars[k][2]-subtraction), np.float32(0)))
 
                             label_2_file.seek(0)
                             l2_data = label_2_file.read(100)
                             #15 first attributes
-                            label_2_file.write(atribute_list[0] + " " + atribute_list[1] + " " + atribute_list[2] + " " + atribute_list[3] + " " + atribute_list[4] + " " + atribute_list[5] + " " + atribute_list[6] + " " + atribute_list[7] + " " + atribute_list[8] + " " + atribute_list[9] + " " + atribute_list[10] + " " + atribute_list[11] + " " + atribute_list[12] + " " + atribute_list[13] + " " + atribute_list[14] + "\n")
-                            
-                    else:
-                        points_cars = points_cars[:, :3]  # exclude luminance
 
-                        for i in range(len(points_cars)):
-                            point_tuple_list.append((points_cars[i][0], points_cars[i][1], points_cars[i][2],))
-                    
+                            new_z_position = entity_pc_pos_z - subtraction
+                            label_2_file.write(atribute_list[0] + " " + atribute_list[1] + " " + atribute_list[2] + " " + atribute_list[3] + " " + atribute_list[4] + " " + atribute_list[5] + " " + atribute_list[6] + " " + atribute_list[7] + " " + atribute_list[8] + " " + atribute_list[9] + " " + atribute_list[10] + " " + atribute_list[11] + " " + str(-new_z_position) + " " + atribute_list[13] + " " + atribute_list[14] + "\n")
+                            already_inserted_cars.append((atribute_list[0], atribute_list[1], atribute_list[2], atribute_list[3], atribute_list[4], atribute_list[5], atribute_list[6], atribute_list[7], atribute_list[8], atribute_list[9], atribute_list[10], atribute_list[11], str(-new_z_position), atribute_list[13], atribute_list[14]))
+                            i+=1
+                            tries=0
+                        else:
+                            tries+=1
                     break
+            if tries > 20:
+                break
 
     if os.stat(label_2_new).st_size != 0:
         saveBinFile(output_file, point_tuple_list)
