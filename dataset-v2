@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from deepgtav.messages import Start, Stop, Scenario, Dataset, Commands, frame2numpy
+from deepgtav.client import Client
+
+import argparse
+import time
+import cv2
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description=None)
+    parser.add_argument('-l', '--host', default='localhost', help='The IP where DeepGTAV is running')
+    parser.add_argument('-p', '--port', default=8000, help='The port where DeepGTAV is running')
+    default_dataset_path = None#base_folder + 'dataset.pz'
+    parser.add_argument('-d', '--dataset_path', default=default_dataset_path, help='Place to store the dataset')
+    args = parser.parse_args()
+
+    # Creates a new connection to DeepGTAV using the specified ip and port. 
+    # If desired, a dataset path and compression level can be set to store in memory all the data received in a gziped pickle file.
+    client = Client(ip=args.host, port=args.port, datasetPath=args.dataset_path, compressionLevel=9)
+    
+    print("Connecting to client...")
+    
+    
+    #Dataset config values
+    width_val = 1920
+    height_val = 1080
+    rate_val=0.2
+    collectVehicles_val = True
+    collectPeds_val = True
+    collectOffscreen_val = False
+    tracking_val = False
+    vehicles = []
+    peds = []
+    lidarParam_val = 7
+    recordScenario_val = False
+    positionScenario_val = False
+    location_val=False
+    
+    #Change to need
+    startIndex_val = 0
+    
+    
+    
+    dataset = Dataset(rate=rate_val,frame=[width_val,height_val], throttle=True, brake=True, steering=True, vehicles=collectVehicles_val, peds=collectPeds_val,
+                        direction=None, speed=True, yawRate=True, location=location_val, time=True, offscreen=collectOffscreen_val,showBoxes=False, pointclouds=True,
+                        stationaryScene=False, collectTracking=tracking_val, vehiclesToCreate=vehicles, pedsToCreate=peds, startIndex=startIndex_val, lidarParam=lidarParam_val,
+                        recordScenario=recordScenario_val, positionScenario=positionScenario_val)
+    
+
+    
+    # We set the scenario to be in manual driving, and everything else random (time, weather and location). 
+    # See deepgtav/messages.py to see what options are supported
+    #scenario = Scenario(drivingMode=-1) #manual driving
+    
+    startLocation = [-564.368, 26.8335, 47, 295.413] #uphill starting place
+    #startLocation=[-840.307, 310.712, 85.7334] #Quiet starting place
+    #startLocation = [-537.332, 236.207, 82.5032] #Good starting place
+    #startLocation = [344.757, 1704.64, 240.2] #test location
+    #driveMode = 786603 #Normal?
+    #driveMode = 447 # Crashed on semaphore
+    #startLocation=[2561, 2637, 110]
+    
+    scenario_location=[]
+    print("start location: ",startLocation)
+    scenario = Scenario(drivingMode=[786603,15.0], location = startLocation)
+    print("scen start location: ", scenario.location)
+    
+    # Send the Start request to DeepGTAV. Dataset is set as default, we only receive frames at 10Hz (320, 160)
+    client.sendMessage(Start(dataset=dataset,scenario=scenario))
+    
+    print("Message sent to client to begin.")
+
+    # Start listening for messages coming from DeepGTAV. We do it for 80 hours
+    stoptime = time.time() + 80*3600
+    while time.time() < stoptime:
+        try:
+            # We receive a message as a Python dictionary
+            message = client.recvMessage()  
+            
+            if(time.time() % 60):
+                print("Time: ",time.time())
+                           
+
+            # The frame is a numpy array that can we pass through a CNN for example     
+            # image = frame2numpy(message['frame'], (320,160))
+            #image = frame2numpy(message['frame'], (1920,1080))
+            #commands = model.run(image)
+            # We send the commands predicted by the agent back to DeepGTAV to control the vehicle
+            #client.sendMessage(Commands(commands[0], commands[1], commands[2]))
+        except KeyboardInterrupt:
+            break
+            
+    # We tell DeepGTAV to stop
+    client.sendMessage(Stop())
+    client.close()
